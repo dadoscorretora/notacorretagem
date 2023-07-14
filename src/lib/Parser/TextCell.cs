@@ -3,10 +3,10 @@ namespace DadosCorretora.NotaCorretagem.Parser;
 public record TextCell
 {
     public string Text = "";
-    public decimal XMin { get; }
-    public decimal XMax { get; }
-    public decimal YMin { get; }
-    public decimal YMax { get; }
+    public decimal XMin;
+    public decimal XMax;
+    public decimal YMin;
+    public decimal YMax;
 }
 
 public static class TextCellExtensions
@@ -17,6 +17,17 @@ public static class TextCellExtensions
     }
 
     public static IEnumerable<TextCell> LineOfText(this IEnumerable<TextCell> cells, string text)
+    {
+        var tokens = new string[] { text };
+        if (text.Contains(" "))
+        {
+            tokens = text.Split(" ");
+        }
+        var found = cells.LineOfText(tokens);
+        return found;
+    }
+
+    public static IEnumerable<TextCell> LineOfText(this IEnumerable<TextCell> cells, string[] sequence) 
     {
         throw new NotImplementedException();
     }
