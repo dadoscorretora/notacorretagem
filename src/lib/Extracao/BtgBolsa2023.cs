@@ -8,14 +8,6 @@ public class BtgBolsa2023
     {
     }
 
-    public static List<Dados> Extrai(IEnumerable<Page> paginas)
-    {
-        var ret = new List<Dados>();
-        //        foreach (var pagina in paginas)
-        //            ret.Add(Extrai(pagina.Texts));
-        return ret;
-    }
-
     private static Dados? Extrai(IEnumerable<TextCell> pagina)
     {
         pagina = pagina.MergeCells(0.5m);
