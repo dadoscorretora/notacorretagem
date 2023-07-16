@@ -4,8 +4,8 @@ namespace DadosCorretora.NotaCorretagem.Parser
 {
 
     public class PdfToHtmlReader
-    {      
-        public static List<TextCell> Read(XmlDocument xmlDoc)
+    {
+        public static List<List<TextCell>> Read(XmlDocument xmlDoc)
         {
             if (xmlDoc == null || !xmlDoc.HasChildNodes)
             {
@@ -16,38 +16,36 @@ namespace DadosCorretora.NotaCorretagem.Parser
             {
                 throw new System.Exception("No page nodes found.");
             }
-            var textCellList = new List<TextCell>();
-            ReadPageList(pageList, textCellList);
-            textCellList = textCellList
-                .OrderBy(t => t.YMin) // Ordena de cima para baixo
-                .ThenBy(t => t.XMin).ToList(); // Da direita para esqueda
+            var textCellList = ReadPageList(pageList);
             return textCellList;
         }
 
-        private static void ReadPageList(XmlNodeList pageList, List<TextCell> textCellList)
+        private static List<List<TextCell>> ReadPageList(XmlNodeList pageList)
         {
-            foreach (var pageNode in pageList)
+            List<List<TextCell>> textCellList = new();
+            foreach (XmlElement pageNode in pageList)
             {
-                var page = pageNode as XmlElement;
-                if (page == null || !page.HasChildNodes)
+                if (pageNode == null || !pageNode.HasChildNodes)
                 {
                     throw new System.Exception("The page node is invalid or has no child nodes.");
                 }
-                var wordList = page.GetElementsByTagName("word");
-                ReadWordList(textCellList, wordList);
+                var wordList = pageNode.GetElementsByTagName("word");
+                List<TextCell> readWordList = ReadWordList(wordList);
+                textCellList.Add(readWordList);
             }
+            return textCellList;
         }
 
-        private static void ReadWordList(List<TextCell> textCellList, XmlNodeList wordList)
+        private static List<TextCell> ReadWordList(XmlNodeList wordList)
         {
-            foreach (var wordNode in wordList)
+            List<TextCell> readWordList = new();
+            foreach (XmlElement wordNode in wordList)
             {
-                var word = wordNode as XmlElement;
-                if (word == null)
+                if (wordNode == null)
                 {
                     throw new System.Exception("No word nodes found.");
                 }
-                var fGetDecimal = (XmlElement element, string attributeName) =>
+                static decimal fGetDecimal(XmlElement element, string attributeName)
                 {
                     var attribute = element.GetAttribute(attributeName);
                     if (attribute == null)
@@ -55,15 +53,18 @@ namespace DadosCorretora.NotaCorretagem.Parser
                         throw new System.Exception($"The attribute {attributeName} is invalid or empty.");
                     }
                     return decimal.Parse(attribute, System.Globalization.CultureInfo.InvariantCulture);
+                }
+                var textCell = new TextCell
+                {
+                    XMax = fGetDecimal(wordNode, "xMax"),
+                    XMin = fGetDecimal(wordNode, "xMin"),
+                    YMax = fGetDecimal(wordNode, "yMax"),
+                    YMin = fGetDecimal(wordNode, "yMin"),
+                    Text = wordNode.InnerText
                 };
-                var textCell = new TextCell();
-                textCell.XMax = fGetDecimal(word, "xMax");
-                textCell.XMin = fGetDecimal(word, "xMin");
-                textCell.YMax = fGetDecimal(word, "yMax");
-                textCell.YMin = fGetDecimal(word, "yMin");
-                textCell.Text = word.InnerText;
-                textCellList.Append(textCell);
+                readWordList.Add(textCell);
             }
+            return readWordList.ReadingOrder();
         }
     }
 }
