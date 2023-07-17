@@ -15,7 +15,7 @@ public class XPBolsa2023
         
     }
 
-    public static Dados? Extrai(List<TextCell> pagina) {
+    public static Dados? Extrai(IEnumerable<TextCell> pagina) {
 
         var rotulosNota = pagina.LineOfText("Nr. nota").ToList();
         var infoNota = pagina.LineBelow(rotulosNota.First()).ToList();
@@ -23,11 +23,7 @@ public class XPBolsa2023
         if (rotulosNota.Count != 5)
             return null;
 
-        if(rotulosNota[0].Text != "Nr." ||
-            rotulosNota[1].Text != "nota" ||
-            rotulosNota[2].Text != "Folha" ||
-            rotulosNota[3].Text != "Data" ||
-            rotulosNota[4].Text != "pregão")
+        if(rotulosNota.LineOfText("Nr. nota Folha Data pregão").ToList().Count != 5)
             return null;
 
         var dados = new Dados
@@ -105,13 +101,11 @@ public class XPBolsa2023
         colValorOperacaoAjuste.Text += $" {cab_negocios[16].Text}";
         colValorOperacaoAjuste.Text += $" {cab_negocios[17].Text}";
 
-
         var fim = pagina.Where(x => x.Text == "Resumo").First();
 
         var vals = pagina
             .Where(x => x.YMin > ini.YMin && x.YMin < fim.YMin);
         
-
         vals.Aggregate(new List<Operacao>(), (acc, x) => {
             throw new NotImplementedException();
         });     
