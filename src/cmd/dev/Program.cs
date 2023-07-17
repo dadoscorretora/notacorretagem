@@ -8,7 +8,7 @@ namespace DadosCorretora.NotaCorretagem.Cmd {
         {
             var xmlDoc = new System.Xml.XmlDocument();
             xmlDoc.Load("../../../reference/XPINC_NOTA_NEGOCIACAO_B3_2_2022.html");
-            List<List<TextCell>> pageList = PdfToHtmlReader.Read(xmlDoc);
+            IEnumerable<IEnumerable<TextCell>> pageList = PdfToHtmlReader.Read(xmlDoc);
             foreach(var wordList in pageList)
             {
                 var dados = XPBolsa2023.Extrai(wordList);

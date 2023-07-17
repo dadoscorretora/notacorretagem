@@ -5,7 +5,7 @@ namespace DadosCorretora.NotaCorretagem.Parser
 
     public class PdfToHtmlReader
     {
-        public static List<List<TextCell>> Read(XmlDocument xmlDoc)
+        public static IEnumerable<IEnumerable<TextCell>> Read(XmlDocument xmlDoc)
         {
             if (xmlDoc == null || !xmlDoc.HasChildNodes)
             {
@@ -38,21 +38,21 @@ namespace DadosCorretora.NotaCorretagem.Parser
 
         private static List<TextCell> ReadWordList(XmlNodeList wordList)
         {
+            static decimal fGetDecimal(XmlElement element, string attributeName)
+            {
+                var attribute = element.GetAttribute(attributeName);
+                if (attribute == null)
+                {
+                    throw new System.Exception($"The attribute {attributeName} is invalid or empty.");
+                }
+                return decimal.Parse(attribute, System.Globalization.CultureInfo.InvariantCulture);
+            }
             List<TextCell> readWordList = new();
             foreach (XmlElement wordNode in wordList)
             {
                 if (wordNode == null)
                 {
                     throw new System.Exception("No word nodes found.");
-                }
-                static decimal fGetDecimal(XmlElement element, string attributeName)
-                {
-                    var attribute = element.GetAttribute(attributeName);
-                    if (attribute == null)
-                    {
-                        throw new System.Exception($"The attribute {attributeName} is invalid or empty.");
-                    }
-                    return decimal.Parse(attribute, System.Globalization.CultureInfo.InvariantCulture);
                 }
                 var textCell = new TextCell
                 {
@@ -64,7 +64,7 @@ namespace DadosCorretora.NotaCorretagem.Parser
                 };
                 readWordList.Add(textCell);
             }
-            return readWordList.ReadingOrder();
+            return readWordList.ReadingOrder().ToList();
         }
     }
 }

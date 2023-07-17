@@ -60,12 +60,6 @@ public static class TextCellExtensions
         return new List<TextCell>();
     }
 
-    public static List<TextCell> ReadingOrder(this List<TextCell> cells)
-    {
-        return cells.OrderBy(t => t.YMin) // Ordena de cima para baixo
-            .ThenBy(t => t.XMin).ToList(); // Da esquerda para direita
-    }
-
     public static IEnumerable<TextCell> ReadingOrder(this IEnumerable<TextCell> cells)
     {
         return cells.OrderBy(t => t.YMin) // Ordena de cima para baixo
