@@ -7,10 +7,54 @@ public record TextCell
     public decimal XMax;
     public decimal YMin;
     public decimal YMax;
+
+    public bool YEquals(TextCell other)
+    {
+        return this.YMin == other.YMin && this.YMax == other.YMax;
+    }
 }
 
 public static class TextCellExtensions
 {
+    public static TextHeader HeaderOf(this IEnumerable<TextCell> cells, string text)
+    {
+        string[] words;
+        if (text.IndexOf(' ') > 0)
+            words = text.Split(' ');
+        else
+            words = new string[] { text };
+
+        var list = cells.ReadingOrder().ToList();
+        var limit = list.Count;
+
+        for (var outer = 0; outer < limit; outer++)
+        {
+            var first = list[outer];
+            if (first.Text == words[0])
+            {
+                for (int inner = outer, found = 0; inner < limit && found < words.Length; inner++, found++)
+                {
+                    var last = list[inner];
+
+                    if (first.YEquals(last) == false)
+                        break; // palavra em outra linha
+                    if (list[inner].Text != words[found])
+                        break; // palavra fora de sequẽncia
+
+                    if (found == words.Length)
+                    {
+                        var xmin = first.XMin;
+                        var xmax = -1m;
+                        if (inner + 1 < limit && first.YEquals(list[inner + 1]))
+                            xmax = list[inner + 1].XMax;
+                        return new TextHeader { Text = text, XMax = xmax, XMin = xmin };
+                    }
+                }
+            }
+        }
+        throw new ArgumentException(text);
+    }
+
     public static IEnumerable<TextCell> LineBelow(this IEnumerable<TextCell> cells, TextCell cell)
     {
         var first = cells
@@ -18,6 +62,13 @@ public static class TextCellExtensions
         return cells
             .Where(x => x.YMin == first.YMin)
             .ReadingOrder();
+    }
+
+    public static IEnumerable<TextCell> LineBelow(this IEnumerable<TextCell> cells, IEnumerable<TextCell> otherCells)
+    {
+        var above = otherCells.Last();
+        var first = cells.Where(x => x.YMin > above.YMin).First();
+        return cells.Where(x => x.YEquals(first));
     }
 
     public static IEnumerable<TextCell> LineOfText(this IEnumerable<TextCell> cells, string text)
@@ -70,10 +121,4 @@ public static class TextCellExtensions
     {
         return cells.Where(x => x.Text == text);
     }
-
-    public static IEnumerable<TextCell> MergeCells(this IEnumerable<TextCell> cells, decimal mergeSpan)
-    {
-        throw new NotImplementedException();
-    }
-
 }

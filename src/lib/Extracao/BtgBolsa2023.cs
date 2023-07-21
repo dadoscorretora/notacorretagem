@@ -10,21 +10,17 @@ public class BtgBolsa2023
 
     private static Dados? Extrai(IEnumerable<TextCell> pagina)
     {
-        pagina = pagina.MergeCells(0.5m);
+        // Nr. nota / Folha / Data pregão
 
-        // Cabeçalho
+        var linha = pagina.LineOfText("Nr. nota");
+        var headNota = linha.HeaderOf("Nr. nota");
+        var headFolh = linha.HeaderOf("Folha");
+        var headData = linha.HeaderOf("Data");
 
-        var label = pagina.LineOfText("Nr. nota").ToList();
-        var linha = pagina.LineBelow(label.First()).ToList();
-
-        if (label.Count != 3 || linha.Count != 3)
-            return null;
-        if (label[0].Text != "Nr. nota" || label[1].Text != "Folha" || label[2].Text != "Data pregão")
-            return null;
-
-        var infoNota = linha[0].Text;
-        var infoFolh = linha[1].Text;
-        var infoData = linha[2].Text;
+        linha = linha.LineBelow(linha);
+        var infoNota = headNota.Intersec(linha).Single().Text;
+        var infoFolh = headFolh.Intersec(linha).Single().Text;
+        var infoData = headData.Intersec(linha).Single().Text;
 
         if (infoNota.Length == 0 | infoFolh.Length == 0 || infoData.Length == 0)
             return null;
