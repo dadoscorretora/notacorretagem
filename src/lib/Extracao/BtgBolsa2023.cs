@@ -8,19 +8,19 @@ public class BtgBolsa2023
     {
     }
 
-    private static Dados? Extrai(IEnumerable<TextCell> pagina)
+    public static Dados? Extrai(IEnumerable<TextCell> pagina)
     {
         // Nr. nota / Folha / Data pregão
 
         var linha = pagina.LineOfText("Nr. nota");
         var headNota = linha.HeaderOf("Nr. nota");
         var headFolh = linha.HeaderOf("Folha");
-        var headData = linha.HeaderOf("Data");
+        var headData = linha.HeaderOf("Data pregão");
 
-        linha = linha.LineBelow(linha);
-        var infoNota = headNota.Intersec(linha).Single().Text;
-        var infoFolh = headFolh.Intersec(linha).Single().Text;
-        var infoData = headData.Intersec(linha).Single().Text;
+        linha = pagina.LineBelow(linha);
+        var infoNota = headNota.Intersect(linha).Single().Text;
+        var infoFolh = headFolh.Intersect(linha).Single().Text;
+        var infoData = headData.Intersect(linha).Single().Text;
 
         if (infoNota.Length == 0 | infoFolh.Length == 0 || infoData.Length == 0)
             return null;

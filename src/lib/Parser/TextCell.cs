@@ -41,12 +41,12 @@ public static class TextCellExtensions
                     if (list[inner].Text != words[found])
                         break; // palavra fora de sequẽncia
 
-                    if (found == words.Length)
+                    if (found + 1 == words.Length)
                     {
                         var xmin = first.XMin;
-                        var xmax = -1m;
+                        var xmax = (decimal?)null;
                         if (inner + 1 < limit && first.YEquals(list[inner + 1]))
-                            xmax = list[inner + 1].XMax;
+                            xmax = list[inner + 1].XMin;
                         return new TextHeader { Text = text, XMax = xmax, XMin = xmin };
                     }
                 }
@@ -67,7 +67,7 @@ public static class TextCellExtensions
     public static IEnumerable<TextCell> LineBelow(this IEnumerable<TextCell> cells, IEnumerable<TextCell> otherCells)
     {
         var above = otherCells.Last();
-        var first = cells.Where(x => x.YMin > above.YMin).First();
+        var first = cells.Where(x => x.YMin > above.YMax).First();
         return cells.Where(x => x.YEquals(first));
     }
 

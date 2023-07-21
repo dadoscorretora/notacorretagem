@@ -6,23 +6,40 @@ public record TextHeader
     public decimal XMin;
     public decimal? XMax;
 
-    public IEnumerable<TextCell> Intersec(IEnumerable<TextCell> cells)
+    public IEnumerable<TextCell> Intersect(IEnumerable<TextCell> cells)
     {
         foreach (var cell in cells)
         {
             if (this.XMax == null)
             {
-                if (this.XMin <= cell.XMin)
-                    yield return cell;
-                if (this.XMin <= cell.XMax)
-                    yield return cell;
+                if (cell.XMin >= this.XMin)
+                {
+                    yield return cell; // start inside
+                    continue;
+                }
+                if (cell.XMax >= this.XMin)
+                {
+                    yield return cell; // end inside
+                    continue;
+                }
             }
             else
             {
-                if (this.XMin <= cell.XMin && cell.XMin <= this.XMax)
-                    yield return cell;
-                if (this.XMin <= cell.XMax && cell.XMax <= this.XMax)
-                    yield return cell;
+                if (cell.XMin >= this.XMin && cell.XMin <= this.XMax)
+                {
+                    yield return cell; // start inside
+                    continue;
+                }
+                if (cell.XMax >= this.XMin && cell.XMax <= this.XMax)
+                {
+                    yield return cell; // end inside
+                    continue;
+                }
+                if (cell.XMin <= this.XMin && cell.XMax >= this.XMax)
+                {
+                    yield return cell; // start and end outside
+                    continue;
+                }
             }
         }
     }
