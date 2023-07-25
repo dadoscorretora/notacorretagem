@@ -43,8 +43,8 @@ namespace DadosCorretora.NotaCorretagem.Cmd {
             var paginas = PdfToHtmlReader.Read(doc);
             foreach (var pagina in paginas)
             {
-                var dados = BtgBolsa2023.Extrai(pagina);
-                System.Console.Out.WriteLine("Extracao: " + (dados != null));
+                var dados = BtgBolsa2023.Extrai(pagina).ToList();
+                System.Console.Out.WriteLine("Extracao: " + dados.Count);
             }
         }
     }

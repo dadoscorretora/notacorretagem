@@ -6,9 +6,25 @@ public class BtgBolsa2023
 {
     public class Dados
     {
+        public DadosTransacao? Transacao;
+
+        public class DadosTransacao
+        {
+            public string NumeroNota = "";
+            public string Folha = "";
+            public string DataPregao = "";
+
+            public string Operacao = "";
+            public string Titulo = "";
+            public string Observacao = "";
+            public string Quantidade = "";
+            public string Preco = "";
+            public string Valor = "";
+            public string Sinal = "";
+        }
     }
 
-    public static Dados? Extrai(IEnumerable<TextCell> pagina)
+    public static IEnumerable<Dados> Extrai(IEnumerable<TextCell> pagina)
     {
         // Nr. nota / Folha / Data pregão
 
@@ -23,56 +39,53 @@ public class BtgBolsa2023
         var infoData = headData.Intersect(linha).Single().Text;
 
         if (infoNota.Length == 0 | infoFolh.Length == 0 || infoData.Length == 0)
-            return null;
+            yield break;
 
         // Negócios
-        /*
-        label = pagina.LineOfText("Especificação do título");
 
-        var headOpera = label.Where(x => x.Text == "C/V").Single();
-        var headEspec = label.Where(x => x.Text == "Especificação do título").Single();
-        var headObser = label.Where(x => x.Text == "Obs. (*)").Single();
-        var headQuant = label.Where(x => x.Text == "Quantidade").Single();
-        var headPreco = label.Where(x => x.Text == "Preço / Ajuste").Single();
-        var headValor = label.Where(x => x.Text == "Valor Operação / Ajuste").Single();
-        var headSinal = label.Where(x => x.Text == "D/C").Single();
+        linha = pagina.LineOfText("Q");
 
-        var lineAbove = label.First();
+        var headOpera = linha.HeaderOf("C/V");
+        var headEspec = linha.HeaderOf("Especificação do título");
+        var headObser = linha.HeaderOf("Obs. (*)");
+        var headQuant = linha.HeaderOf("Quantidade");
+        var headPreco = linha.HeaderOf("Preço / Ajuste");
+        var headValor = linha.HeaderOf("Valor Operação / Ajuste");
+        var headSinal = linha.HeaderOf("D/C");
+
         while (true)
         {
-            var operacao = new Result();
+            var transacao = new Dados.DadosTransacao
+            {
+                NumeroNota = infoNota,
+                Folha = infoFolh,
+                DataPregao = infoData
+            };
 
-            operacao.NumeroNota = infoNota;
-            operacao.Folha = infoFolh;
-            operacao.DataPregao = infoData;
-
-            linha = pagina.LineBelow(lineAbove);
-            if (linha.Where(x => x.Text == "Resumo dos Negócios" || x.Text == "Resumo Financeiro").Any())
+            linha = pagina.LineBelow(linha);
+            if (linha.LineOfText("Resumo dos Negócios").Any() || linha.LineOfText("Resumo Financeiro").Any())
                 break;
-            if (linha.Count == 0)
-                break;
-            else
-                lineAbove = linha.First();
 
-            var infoOpera = PdfMath.IntersectH(headOpera, linha).Single();
-            var infoEspec = PdfMath.IntersectH(headEspec, linha).First();
-            var infoObser = PdfMath.IntersectH(headObser, linha).SingleOrDefault();
-            var infoQuant = PdfMath.IntersectH(headQuant, linha).Single();
-            var infoPreco = PdfMath.IntersectH(headPreco, linha).Single();
-            var infoValor = PdfMath.IntersectH(headValor, linha).Single();
-            var infoSinal = PdfMath.IntersectH(headSinal, linha).Single();
+            var infoOpera = headOpera.Intersect(linha).Single().Text;
+            var infoEspec = headEspec.Intersect(linha).Single().Text;
+            var infoObser = headObser.Intersect(linha).SingleOrDefault()?.Text ?? "";
+            var infoQuant = headQuant.Intersect(linha).Single().Text;
+            var infoPreco = headPreco.Intersect(linha).Single().Text;
+            var infoValor = headValor.Intersect(linha).Single().Text;
+            var infoSinal = headSinal.Intersect(linha).Single().Text;
 
-            operacao.Operacao = infoOpera.Text;
-            operacao.Titulo = infoEspec.Text;
-            operacao.Observacao = infoObser == null ? "" : infoObser.Text;
-            operacao.Quantidade = infoQuant.Text;
-            operacao.Preco = infoPreco.Text;
-            operacao.Valor = infoValor.Text;
-            operacao.Sinal = infoSinal.Text;
+            transacao.Operacao = infoOpera;
+            transacao.Titulo = infoEspec;
+            transacao.Observacao = infoObser;
+            transacao.Quantidade = infoQuant;
+            transacao.Preco = infoPreco;
+            transacao.Valor = infoValor;
+            transacao.Sinal = infoSinal;
 
-            output.Add(operacao);
+            yield return new Dados { Transacao = transacao };
         }
 
+        /*
         // Custos
         {
             var headCustos = pagina.ByTextEquals("Resumo Financeiro");
@@ -150,7 +163,6 @@ public class BtgBolsa2023
 
         return true;
         */
-        return null;
     }
 
     /*

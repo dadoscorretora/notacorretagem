@@ -25,12 +25,12 @@ public record TextHeader
             }
             else
             {
-                if (cell.XMin >= this.XMin && cell.XMin <= this.XMax)
+                if (cell.XMin >= this.XMin && cell.XMin < this.XMax)
                 {
                     yield return cell; // start inside
                     continue;
                 }
-                if (cell.XMax >= this.XMin && cell.XMax <= this.XMax)
+                if (cell.XMax >= this.XMin && cell.XMax < this.XMax)
                 {
                     yield return cell; // end inside
                     continue;
