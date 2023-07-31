@@ -29,30 +29,36 @@ public static class TextCellExtensions
 
         for (var outer = 0; outer < limit; outer++)
         {
-            var first = list[outer];
-            if (first.Text == words[0])
+            var head = list[outer];
+            if (head.Text == words[0])
             {
                 for (int inner = outer, found = 0; inner < limit && found < words.Length; inner++, found++)
                 {
-                    var last = list[inner];
+                    var tail = list[inner];
 
-                    if (first.YEquals(last) == false)
-                        break; // palavra em outra linha
-                    if (list[inner].Text != words[found])
-                        break; // palavra fora de sequẽncia
+                    if (head.YEquals(tail) == false)
+                        break; // outra linha
+                    if (tail.Text != words[found])
+                        break; // fora de sequẽncia
 
                     if (found + 1 == words.Length)
                     {
-                        var xmin = first.XMin;
-                        var xmax = (decimal?)null;
-                        if (inner + 1 < limit && first.YEquals(list[inner + 1]))
-                            xmax = list[inner + 1].XMin;
-                        return new TextHeader { Text = text, XMax = xmax, XMin = xmin };
+                        var xmin = head.XMin;
+                        if (inner + 1 < limit && head.YEquals(list[inner + 1]))
+                            return new TextHeader { Text = text, XMin = xmin, XMax = list[inner + 1].XMin, };
+                        else
+                            return new TextHeader { Text = text, XMin = xmin };
+
                     }
                 }
             }
         }
         throw new ArgumentException(text);
+    }
+
+    public static string InnerText(this IEnumerable<TextCell> cells)
+    {
+        return string.Join(" ", cells.Select(x => x.Text));
     }
 
     public static IEnumerable<TextCell> LineBelow(this IEnumerable<TextCell> cells, TextCell cell)
@@ -105,6 +111,7 @@ public static class TextCellExtensions
                 TextCell first = cellsCursor.First();
                 return cells
                     .Where(x => x.YMin == first.YMin)
+                    .Where(x => x.XMin >= first.XMin)
                     .ReadingOrder();
             }
         }
@@ -114,7 +121,7 @@ public static class TextCellExtensions
     public static IEnumerable<TextCell> ReadingOrder(this IEnumerable<TextCell> cells)
     {
         return cells.OrderBy(t => t.YMin) // Ordena de cima para baixo
-            .ThenBy(t => t.XMin); // Da esquerda para direita
+                    .ThenBy(t => t.XMin); // Da esquerda para direita
     }
 
     public static IEnumerable<TextCell> TextEquals(this IEnumerable<TextCell> cells, string text)

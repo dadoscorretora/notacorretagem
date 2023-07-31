@@ -44,7 +44,12 @@ namespace DadosCorretora.NotaCorretagem.Cmd {
             foreach (var pagina in paginas)
             {
                 var dados = BtgBolsa2023.Extrai(pagina).ToList();
-                System.Console.Out.WriteLine("Extracao: " + dados.Count);
+                foreach (var dado in dados)
+                {
+                    var t = dado.Transacao;
+                    if (t != null)
+                        System.Console.WriteLine($"t {t.DataPregao} {t.NumeroNota} {t.Folha} {t.Operacao} {t.Titulo} {t.Quantidade} {t.Preco} {t.Valor}");
+                }
             }
         }
     }

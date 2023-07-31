@@ -7,6 +7,7 @@ public class BtgBolsa2023
     public class Dados
     {
         public DadosTransacao? Transacao;
+        public DadosCusto? Custo;
 
         public class DadosTransacao
         {
@@ -21,6 +22,18 @@ public class BtgBolsa2023
             public string Preco = "";
             public string Valor = "";
             public string Sinal = "";
+        }
+        public class DadosCusto
+        {
+            public string NumeroNota = "";
+            public string Folha = "";
+            public string DataPregao = "";
+
+            public string CustoTaxaLiquidacao = "";
+            public string CustoTaxaRegistro = "";
+            public string CustoTotalBolsa = "";
+            public string CustoTotalCorretora = "";
+            public string IrrfSobreOperacoes = "";
         }
     }
 
@@ -67,7 +80,7 @@ public class BtgBolsa2023
                 break;
 
             var infoOpera = headOpera.Intersect(linha).Single().Text;
-            var infoEspec = headEspec.Intersect(linha).Single().Text;
+            var infoEspec = headEspec.Intersect(linha).InnerText();
             var infoObser = headObser.Intersect(linha).SingleOrDefault()?.Text ?? "";
             var infoQuant = headQuant.Intersect(linha).Single().Text;
             var infoPreco = headPreco.Intersect(linha).Single().Text;
@@ -85,41 +98,42 @@ public class BtgBolsa2023
             yield return new Dados { Transacao = transacao };
         }
 
-        /*
         // Custos
+
         {
-            var headCustos = pagina.ByTextEquals("Resumo Financeiro");
-            var sectCustos = pagina.Texts
-                                    .Where(x => x != PdfText.Empty)
-                                    .Where(x => x.H1 > headCustos.H0)
-                                    .Where(x => x.V1 > headCustos.V0);
+            var celulaTitulo = pagina.LineOfText("Resumo Financeiro").First();
+            var blocoCustos = pagina.Where(cell => cell.YMin > celulaTitulo.YMax) // abaixo
+                                    .Where(cell => cell.XMax > celulaTitulo.XMin) // direita
+                                    .ToList();
 
-            var pageCustos = new PdfPage(sectCustos);
+            var custLiq = blocoCustos.LineOfText("Taxa de liquidação").Skip(3).InnerText();
+            var custReg = blocoCustos.LineOfText("Taxa de Registro").Skip(3).InnerText();
+            var custBls = blocoCustos.LineOfText("Total Bovespa / Soma").Skip(4).InnerText();
+            var custCrr = blocoCustos.LineOfText("Total corretagem / Despesas").Skip(4).InnerText();
+            var custIrf = blocoCustos.LineOfText("I.R.R.F. s/ operações, base R$").Skip(6).InnerText(); // skip+1
 
-            var cstLiq = pageCustos.LineOf("Taxa de liquidação");
-            var cstReg = pageCustos.LineOf("Taxa de Registro");
-            var cstBolsa = pageCustos.LineOf("Total Bovespa / Soma");
-            var cstCorre = pageCustos.LineOf("Total corretagem / Despesas");
-            var cstIrrf = pageCustos.LineOf("I.R.R.F. s/ operações, base R$");
+            if (custCrr.Contains("CONTINUA"))
+                custCrr = custCrr.Replace("CONTINUA", "");
 
-            var custo = new Result();
+            if (custLiq.Length + custReg.Length + custBls.Length + custCrr.Length + custIrf.Length > 0)
+            {
+                var custo = new Dados.DadosCusto
+                {
+                    NumeroNota = infoNota,
+                    Folha = infoFolh,
+                    DataPregao = infoData,
+                    CustoTaxaLiquidacao = custLiq,
+                    CustoTaxaRegistro = custReg,
+                    CustoTotalBolsa = custBls,
+                    CustoTotalCorretora = custCrr,
+                    IrrfSobreOperacoes = custIrf
+                };
 
-            custo.NumeroNota = infoNota;
-            custo.Folha = infoFolh;
-            custo.DataPregao = infoData;
-
-            custo.CustoTaxaLiquidacao = CustoTsv(cstLiq);
-            custo.CustoTaxaRegistro = CustoTsv(cstReg);
-            custo.CustoTotalBolsa = CustoTsv(cstBolsa);
-            custo.CustoTotalCorretora = CustoTsv(cstCorre);
-            custo.IrrfSobreOperacoes = CustoTsv(cstIrrf); ;
-
-            if (custo.CustoTotalCorretora.Contains("CONTINUA"))
-                custo.CustoTotalCorretora = "";
-
-            output.Add(custo);
+                yield return new Dados { Custo = custo };
+            }
         }
 
+        /*
         // Detalhamento day trade
 
         if (pagina.Texts.Where(x => x.Text.StartsWith("Detalhamento do Day Trade:")).Any())
