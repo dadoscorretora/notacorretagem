@@ -102,9 +102,7 @@ public class BtgBolsa2023
 
         {
             var celulaTitulo = pagina.LineOfText("Resumo Financeiro").First();
-            var blocoCustos = pagina.Where(cell => cell.YMin > celulaTitulo.YMax) // abaixo
-                                    .Where(cell => cell.XMax > celulaTitulo.XMin) // direita
-                                    .ToList();
+            var blocoCustos = pagina.AllStraightBelow(celulaTitulo);
 
             var custLiq = blocoCustos.LineOfText("Taxa de liquidação").Skip(3).InnerText();
             var custReg = blocoCustos.LineOfText("Taxa de Registro").Skip(3).InnerText();

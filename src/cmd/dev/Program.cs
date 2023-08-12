@@ -4,7 +4,7 @@ using DadosCorretora.NotaCorretagem.Parser;
 namespace DadosCorretora.NotaCorretagem.Cmd {
     public class Program
     {
-        public static void Main(string[] args)
+        public static void Main()
         {
             Console.WriteLine(Environment.CurrentDirectory);
 
@@ -21,16 +21,24 @@ namespace DadosCorretora.NotaCorretagem.Cmd {
         {
             var xmlDoc = new System.Xml.XmlDocument();
             xmlDoc.Load(nomeArquivo);
-            IEnumerable<IEnumerable<TextCell>> pageList = PdfToHtmlReader.Read(xmlDoc);
-            foreach (var wordList in pageList)
+            IEnumerable<IEnumerable<TextCell>> paginas = PdfToHtmlReader.Read(xmlDoc);
+            foreach (var pagina in paginas)
             {
-                var dados = XPBolsa2023.Extrai(wordList);
+                var dados = XPBolsa2023.Extrai(pagina);
                 if (dados == null)
                 {
                     System.Console.Out.WriteLine("Dados não encontrados");
                 }
                 else
                 {
+                    foreach(var dado in dados) {
+                        var t = dado.Transacao;
+                        if (t != null)
+                            System.Console.WriteLine($"t;{t.DataPregao};{t.NumeroNota};{t.Folha};{t.Operacao};{t.Titulo};{t.Quantidade};{t.Preco};{t.Valor}");
+                        var c = dado.Custo;
+                        if (c != null)
+                            System.Console.WriteLine($"c;{c.DataPregao};{c.NumeroNota};{c.Folha};{c.CustoTaxaLiquidacao};{c.CustoTaxaRegistro};{c.CustoTotalBolsa};{c.CustoTotalCorretora};{c.IrrfSobreOperacoes}");
+                    }
                     System.Console.Out.WriteLine("Dados encontrados");
                 }
             }
@@ -48,8 +56,11 @@ namespace DadosCorretora.NotaCorretagem.Cmd {
                 {
                     var t = dado.Transacao;
                     if (t != null)
-                        System.Console.WriteLine($"t {t.DataPregao} {t.NumeroNota} {t.Folha} {t.Operacao} {t.Titulo} {t.Quantidade} {t.Preco} {t.Valor}");
-                }
+                        System.Console.WriteLine($"t,{t.DataPregao};{t.NumeroNota};{t.Folha};{t.Operacao};{t.Titulo};{t.Quantidade};{t.Preco};{t.Valor}");
+                    var c = dado.Custo;
+                    if (c != null)
+                        System.Console.WriteLine($"c;{c.DataPregao};{c.NumeroNota};{c.Folha};{c.CustoTaxaLiquidacao};{c.CustoTaxaRegistro};{c.CustoTotalBolsa};{c.CustoTotalCorretora};{c.IrrfSobreOperacoes}");
+               }
             }
         }
     }

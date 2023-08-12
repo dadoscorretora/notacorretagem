@@ -8,6 +8,13 @@ public record TextCell
     public decimal YMin;
     public decimal YMax;
 
+    public decimal YMean
+    {
+        get {
+            return ((this.YMin + this.YMax) / 2);
+        }
+    }
+
     public bool YEquals(TextCell other)
     {
         return this.YMin == other.YMin && this.YMax == other.YMax;
@@ -70,6 +77,13 @@ public static class TextCellExtensions
             .ReadingOrder();
     }
 
+    public static IEnumerable<TextCell> AllStraightBelow(this IEnumerable<TextCell> cells, TextCell topCell)
+    {
+        return cells.Where(cell => cell.YMin > topCell.YMax)
+                    .Where(cell => cell.XMax >= topCell.XMin)
+                    .ReadingOrder();
+    }
+
     public static IEnumerable<TextCell> LineBelow(this IEnumerable<TextCell> cells, IEnumerable<TextCell> otherCells)
     {
         var above = otherCells.Last();
@@ -110,7 +124,7 @@ public static class TextCellExtensions
             {
                 TextCell first = cellsCursor.First();
                 return cells
-                    .Where(x => x.YMin == first.YMin)
+                    .Where(x => x.YMean >= first.YMin && x.YMean <= first.YMax)
                     .Where(x => x.XMin >= first.XMin)
                     .ReadingOrder();
             }
@@ -120,7 +134,7 @@ public static class TextCellExtensions
 
     public static IEnumerable<TextCell> ReadingOrder(this IEnumerable<TextCell> cells)
     {
-        return cells.OrderBy(t => t.YMin) // Ordena de cima para baixo
+        return cells.OrderBy(t => t.YMax) // Ordena de cima para baixo
                     .ThenBy(t => t.XMin); // Da esquerda para direita
     }
 
