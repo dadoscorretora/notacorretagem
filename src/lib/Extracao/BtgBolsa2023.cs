@@ -1,45 +1,14 @@
+using System.Net.Quic;
+using System.Text;
 using DadosCorretora.NotaCorretagem.Parser;
 
 namespace DadosCorretora.NotaCorretagem.Extracao;
 
 public class BtgBolsa2023
 {
-    public class Dados
-    {
-        public DadosTransacao? Transacao;
-        public DadosCusto? Custo;
-
-        public class DadosTransacao
-        {
-            public string NumeroNota = "";
-            public string Folha = "";
-            public string DataPregao = "";
-
-            public string Operacao = "";
-            public string Titulo = "";
-            public string Observacao = "";
-            public string Quantidade = "";
-            public string Preco = "";
-            public string Valor = "";
-            public string Sinal = "";
-        }
-        public class DadosCusto
-        {
-            public string NumeroNota = "";
-            public string Folha = "";
-            public string DataPregao = "";
-
-            public string CustoTaxaLiquidacao = "";
-            public string CustoTaxaRegistro = "";
-            public string CustoTotalBolsa = "";
-            public string CustoTotalCorretora = "";
-            public string IrrfSobreOperacoes = "";
-        }
-    }
-
     public static IEnumerable<Dados> Extrai(IEnumerable<TextCell> pagina)
     {
-        // Nr. nota / Folha / Data pregão
+        // Cabeçalho
 
         var linha = pagina.LineOfText("Nr. nota");
         var headNota = linha.HeaderOf("Nr. nota");
@@ -98,8 +67,7 @@ public class BtgBolsa2023
             yield return new Dados { Transacao = transacao };
         }
 
-        // Custos
-
+        // Custo
         {
             var celulaTitulo = pagina.LineOfText("Resumo Financeiro").First();
             var blocoCustos = pagina.AllStraightBelow(celulaTitulo);
@@ -111,7 +79,7 @@ public class BtgBolsa2023
             var custIrf = blocoCustos.LineOfText("I.R.R.F. s/ operações, base R$").Skip(6).InnerText(); // skip+1
 
             if (custCrr.Contains("CONTINUA"))
-                custCrr = custCrr.Replace("CONTINUA", "");
+                custCrr = "";
 
             if (custLiq.Length + custReg.Length + custBls.Length + custCrr.Length + custIrf.Length > 0)
             {
@@ -131,77 +99,126 @@ public class BtgBolsa2023
             }
         }
 
-        /*
-        // Detalhamento day trade
+        // Day trade
 
-        if (pagina.Texts.Where(x => x.Text.StartsWith("Detalhamento do Day Trade:")).Any())
+        if (pagina.LineOfText("Detalhamento do Day Trade:").Any())
         {
-            var limiteAcima = pagina.ByTextEquals("Resumo dos Negócios");
-            var limiteDireita = pagina.ByTextEquals("Resumo Financeiro");
+            var limiteAcima = pagina.LineOfText("Resumo dos Negócios").First();
+            var limiteDireita = pagina.LineOfText("Resumo Financeiro").First();
 
-            var filtro = pagina.Texts
-                                .Where(x => x != PdfText.Empty)
-                                .Where(x => x.Below(limiteAcima))
-                                .Where(x => x.Left(limiteDireita));
+            var quadro = pagina.Below(limiteAcima)
+                               .Left(limiteDireita)
+                               .ToList();
 
-            var page = new PdfPage(filtro);
+            var dt = new Dados.DadosDaytrade
+            {
+                NumeroNota = infoNota,
+                Folha = infoFolh,
+                DataPregao = infoData
+            };
 
-            var custo = new Result();
+            dt.Base = CustoDt("Day Trade: Base", quadro);
+            dt.Irrf = CustoDt("IRRF Projeção", quadro);
+            dt.Bruto = CustoDt("Valor Bruto:", quadro);
+            dt.Corretagem = CustoDt("Corretagem:", quadro);
+            dt.Emolumento = CustoDt("Emolumentos:", quadro);
+            dt.TaxaLiquidacao = CustoDt("Taxa de Liquidação:", quadro);
+            dt.TaxaRegistro = CustoDt("Taxa de Registro:", quadro);
+            dt.TaxaAna = CustoDt("Taxa Ana:", quadro);
 
-            custo.NumeroNota = infoNota;
-            custo.Folha = infoFolh;
-            custo.DataPregao = infoData;
-
-            const string labelBase = "Day Trade: Base";
-            const string labelIrrf = " IRRF Projeção";
-
-            var text = page.ByTextStartsWith(labelBase);
-            var pos = text.Text.IndexOf(labelIrrf);
-
-            var textBase = text.Text.Substring(0, pos);
-            var textIrrf = text.Text.Substring(pos);
-
-            custo.Dt_Base = CustoDt(textBase, labelBase);
-            custo.Dt_Irrf = CustoDt(textIrrf, labelIrrf);
-            custo.Dt_Bruto = CustoDt(page, "Valor Bruto:");
-            custo.Dt_Corretagem = CustoDt(page, "Corretagem:");
-            custo.Dt_Emolumento = CustoDt(page, "Emolumentos:");
-            custo.Dt_TaxaLiquidacao = CustoDt(page, "Taxa de Liquidação:");
-            custo.Dt_TaxaRegistro = CustoDt(page, "Taxa de Registro:");
-            custo.Dt_TaxaAna = CustoDt(page, "Taxa Ana:");
-
-            output.Add(custo);
+            yield return new Dados { Daytrade = dt };
         }
-
-        return true;
-        */
     }
 
-    /*
-    private static string CustoDt(string payload, string prefix)
+    private static string CustoDt(string prefixo, IEnumerable<TextCell> cells)
     {
-        var pos = payload.IndexOf(prefix);
-        var rest = payload.Substring(pos + prefix.Length);
-        rest = rest.Replace("R$ ", "");
-        rest = rest.Trim();
-        return rest;
+        var linha = cells.LineOfText(prefixo).InnerText();
+        var buffer = new StringBuilder(16);
+        // Avança para depois do prefixo
+        var pos = linha.IndexOf(prefixo);
+        if (pos < 0)
+            throw new FormatException("Esperado '" + prefixo + "'.");
+        pos += prefixo.Length;
+        // ws
+        while (linha[pos] == ' ')
+            pos++;
+        // Possível sinal
+        if (linha[pos] == '-')
+        {
+            buffer.Append('-');
+            pos++;
+        }
+        // Sifrão
+        if (linha[pos] == 'R' && linha[pos + 1] == '$')
+            pos += 2;
+        else
+            throw new FormatException("Esperado 'R$'.");
+        // ws
+        while (linha[pos] == ' ')
+            pos++;
+        // finalmente, os números
+        while (pos < linha.Length)
+        {
+            var chr = linha[pos];
+            if ((chr >= '0' && chr <= '9') || chr == ',')
+            {
+                buffer.Append(chr);
+                pos++;
+            }
+            else
+                break;
+        }
+        return buffer.ToString();
     }
 
-    private static string CustoDt(PdfPage page, string prefix)
+    // Retorno principal, texto
+
+    public class Dados
     {
-        var text = page.ByTextStartsWith(prefix);
-        var ret = CustoDt(text.Text, prefix);
-        return ret;
-    }
+        public DadosTransacao? Transacao;
+        public DadosCusto? Custo;
+        public DadosDaytrade? Daytrade;
 
-    private static string CustoTsv(List<PdfText> list)
-    {
-        if (list.Count <= 1)
-            return "";
-        if (list.Count == 2)
-            return list[1].Text;
+        public class DadosTransacao
+        {
+            public string NumeroNota = "";
+            public string Folha = "";
+            public string DataPregao = "";
 
-        return string.Join("\t", list.Skip(1).Select(x => x.Text));
+            public string Operacao = "";
+            public string Titulo = "";
+            public string Observacao = "";
+            public string Quantidade = "";
+            public string Preco = "";
+            public string Valor = "";
+            public string Sinal = "";
+        }
+        public class DadosCusto
+        {
+            public string NumeroNota = "";
+            public string Folha = "";
+            public string DataPregao = "";
+
+            public string CustoTaxaLiquidacao = "";
+            public string CustoTaxaRegistro = "";
+            public string CustoTotalBolsa = "";
+            public string CustoTotalCorretora = "";
+            public string IrrfSobreOperacoes = "";
+        }
+        public class DadosDaytrade
+        {
+            public string NumeroNota = "";
+            public string Folha = "";
+            public string DataPregao = "";
+
+            public string Base = "";
+            public string Irrf = "";
+            public string Bruto = "";
+            public string Corretagem = "";
+            public string Emolumento = "";
+            public string TaxaLiquidacao = "";
+            public string TaxaRegistro = "";
+            public string TaxaAna = "";
+        }
     }
-    */
 }

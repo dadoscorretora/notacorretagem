@@ -23,6 +23,11 @@ public record TextCell
 
 public static class TextCellExtensions
 {
+    public static IEnumerable<TextCell> Below(this IEnumerable<TextCell> cells, TextCell cell)
+    {
+        return cells.Where(data => data.YMin > cell.YMin);
+    }
+
     public static TextHeader HeaderOf(this IEnumerable<TextCell> cells, string text)
     {
         string[] words;
@@ -66,6 +71,11 @@ public static class TextCellExtensions
     public static string InnerText(this IEnumerable<TextCell> cells)
     {
         return string.Join(" ", cells.Select(x => x.Text));
+    }
+
+    public static IEnumerable<TextCell> Left(this IEnumerable<TextCell> cells, TextCell cell)
+    {
+        return cells.Where(data => data.XMin < cell.XMin);
     }
 
     public static IEnumerable<TextCell> LineBelow(this IEnumerable<TextCell> cells, TextCell cell)
