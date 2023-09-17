@@ -117,20 +117,104 @@ public partial class BtgBolsa2023
                 DataPregao = infoData
             };
 
-            dt.Base = CustoDt("Day Trade: Base", quadro);
-            dt.Irrf = CustoDt("IRRF Projeção", quadro);
-            dt.Bruto = CustoDt("Valor Bruto:", quadro);
-            dt.Corretagem = CustoDt("Corretagem:", quadro);
-            dt.Emolumento = CustoDt("Emolumentos:", quadro);
-            dt.TaxaLiquidacao = CustoDt("Taxa de Liquidação:", quadro);
-            dt.TaxaRegistro = CustoDt("Taxa de Registro:", quadro);
-            dt.TaxaAna = CustoDt("Taxa Ana:", quadro);
+            dt.Base = ExtraiCustoDayTrade("Day Trade: Base", quadro);
+            dt.Irrf = ExtraiCustoDayTrade("IRRF Projeção", quadro);
+            dt.Bruto = ExtraiCustoDayTrade("Valor Bruto:", quadro);
+            dt.Corretagem = ExtraiCustoDayTrade("Corretagem:", quadro);
+            dt.Emolumento = ExtraiCustoDayTrade("Emolumentos:", quadro);
+            dt.TaxaLiquidacao = ExtraiCustoDayTrade("Taxa de Liquidação:", quadro);
+            dt.TaxaRegistro = ExtraiCustoDayTrade("Taxa de Registro:", quadro);
+            dt.TaxaAna = ExtraiCustoDayTrade("Taxa Ana:", quadro);
 
             yield return new Dados { Daytrade = dt };
         }
     }
 
-    private static string CustoDt(string prefixo, IEnumerable<TextCell> cells)
+    public static void Extrai(IEnumerable<TextCell> pagina, Calculo.DadosNota calculo)
+    {
+        foreach (var extracao in Extrai(pagina))
+        {
+            // Transação
+            {
+                var input = extracao.Transacao;
+                if (input != null)
+                {
+                    var ticker = input.Titulo;
+                    if (ticker.EndsWith("F"))
+                        ticker = ticker.Substring(0, ticker.Length - 1);
+                    var data = ConvertDat(input.DataPregao);
+                    var quant = ConverteDec(input.Quantidade);
+                    var finan = ConverteDec(input.Valor);
+                    var daytd = false;
+
+                    switch (input.Sinal)
+                    {
+                        case "C": break;
+                        case "D": finan *= -1; break;
+                        default: throw new FormatException(nameof(input.Sinal) + ": " + input.Sinal);
+                    }
+
+                    switch (input.Observacao)
+                    {
+                        case "": break;
+                        case "D": daytd = true; break;
+                        default: throw new FormatException(nameof(input.Observacao) + ": " + input.Observacao);
+                    }
+
+                    switch (input.Operacao)
+                    {
+                        case "C": break;
+                        case "V": quant *= -1; break;
+                        default: throw new FormatException(nameof(input.Operacao) + ": " + input.Operacao);
+                    }
+
+                    //calculo.IncluiOperacao(input.NumeroNota, data, trans.Titulo, quant, finan, daytd);
+                    continue;
+                }
+            }
+
+            // Custo
+            {
+                var input = extracao.Custo;
+                if (input != null)
+                {
+                    var data = ConvertDat(input.DataPregao);
+
+                    var custo = Decimal.Zero;
+                    custo += ConverteDecSnl(input.CustoTaxaLiquidacao);
+                    custo += ConverteDecSnl(input.CustoTaxaRegistro);
+                    custo += ConverteDecSnl(input.CustoTotalBolsa);
+                    custo += ConverteDecSnl(input.CustoTotalCorretora);
+                    var irrf = ConverteDecSnl(input.IrrfSobreOperacoes);
+
+                    //if (custo != 0 || irrf != 0)
+                    //  calculo.IncluiCusto(input.NumeroNota, data, custo, irrf , false );
+                    continue;
+                }
+            }
+
+            // Custo daytrade
+            {
+                var input = extracao.Daytrade;
+                if (input != null)
+                {
+                    var custo = Decimal.Zero;
+                    custo += ConverteDec(input.Corretagem);
+                    custo += ConverteDec(input.Emolumento);
+                    custo += ConverteDec(input.TaxaLiquidacao);
+                    custo += ConverteDec(input.TaxaRegistro);
+                    custo += ConverteDec(input.TaxaAna);
+                    var irrf = ConverteDecSnl(input.Irrf);
+
+                    //if (custo != 0 || irrf != 0)
+                    //  calculo.IncluiCusto(input.NumeroNota, data, custo, irrf , true );
+                    continue;
+                }
+            }
+        }
+    }
+
+    private static string ExtraiCustoDayTrade(string prefixo, IEnumerable<TextCell> cells)
     {
         var linha = cells.LineOfText(prefixo).InnerText();
         var buffer = new StringBuilder(16);
@@ -171,7 +255,34 @@ public partial class BtgBolsa2023
         return buffer.ToString();
     }
 
-    // Retorno principal, texto
+    private static readonly System.Globalization.CultureInfo Br = new System.Globalization.CultureInfo("pt-BR");
+
+    private static DateTime ConvertDat(string texto)
+    {
+        return DateTime.ParseExact(texto, "dd/MM/yyyy", Br);
+    }
+
+    private static decimal ConverteDec(string texto)
+    {
+        if (texto == null || texto.Length == 0)
+            return 0;
+        return decimal.Parse(texto, Br);
+    }
+
+    private static decimal ConverteDecSnl(string texto)
+    {
+        if (texto.EndsWith(" C"))
+        {
+            texto = texto.Substring(0, texto.Length - 2).Trim();
+            return ConverteDec(texto);
+        }
+        if (texto.EndsWith(" D"))
+        {
+            texto = texto.Substring(0, texto.Length - 2).Trim();
+            return ConverteDec(texto) * -1;
+        }
+        return 0;
+    }
 
     public class Dados
     {
