@@ -5,13 +5,30 @@ public record TextCell
     public string Text = "";
     public decimal XMin;
     public decimal XMax;
-    public decimal YMin;
-    public decimal YMax;
+    private decimal _YMin = 0;
+    private decimal _YMax = 0;
+    private decimal _YMean = 0;
+
+    public decimal YMin {
+        get => this._YMin;
+        set {
+            this._YMin = value;
+            this._YMean = ((this._YMin + this._YMax) / 2);
+        }
+    }
+
+    public decimal YMax {
+        get => this._YMax;
+        set {
+            this._YMax = value;
+            this._YMean = ((this._YMin + this._YMax) / 2);
+        }
+    }
 
     public decimal YMean
     {
         get {
-            return ((this.YMin + this.YMax) / 2);
+            return this._YMean;
         }
     }
 
@@ -87,18 +104,18 @@ public static class TextCellExtensions
             .ReadingOrder();
     }
 
+    public static IEnumerable<TextCell> LineBelow(this IEnumerable<TextCell> cells, IEnumerable<TextCell> otherCells)
+    {
+        var above = otherCells.Last();
+        var first = cells.Where(x => x.YMin > above.YMax).First();
+        return cells.Where(x => x.YEquals(first)).ReadingOrder();
+    }
+
     public static IEnumerable<TextCell> AllStraightBelow(this IEnumerable<TextCell> cells, TextCell topCell)
     {
         return cells.Where(cell => cell.YMin > topCell.YMax)
                     .Where(cell => cell.XMax >= topCell.XMin)
                     .ReadingOrder();
-    }
-
-    public static IEnumerable<TextCell> LineBelow(this IEnumerable<TextCell> cells, IEnumerable<TextCell> otherCells)
-    {
-        var above = otherCells.Last();
-        var first = cells.Where(x => x.YMin > above.YMax).First();
-        return cells.Where(x => x.YEquals(first));
     }
 
     public static IEnumerable<TextCell> LineOfText(this IEnumerable<TextCell> cells, string text)
@@ -117,7 +134,7 @@ public static class TextCellExtensions
 
     public static IEnumerable<TextCell> LineOfText(this IEnumerable<TextCell> cells, string[] sequence)
     {
-        IEnumerable<TextCell> cellsCursor = new List<TextCell>(cells);
+        var skipCells = 0;
         var sequenceCursor = 0;
         foreach (var cell in cells)
         {
@@ -127,12 +144,13 @@ public static class TextCellExtensions
             }
             else
             {
-                cellsCursor = cellsCursor.Skip(sequenceCursor + 1);
+                skipCells += sequenceCursor + 1;
                 sequenceCursor = 0;
             }
             if (sequenceCursor == sequence.Length)
             {
-                TextCell first = cellsCursor.First();
+                IEnumerable<TextCell> line = new List<TextCell>(cells);
+                TextCell first = line.Skip(skipCells).First();
                 return cells
                     .Where(x => x.YMean >= first.YMin && x.YMean <= first.YMax)
                     .Where(x => x.XMin >= first.XMin)
@@ -146,10 +164,5 @@ public static class TextCellExtensions
     {
         return cells.OrderBy(t => t.YMax) // Ordena de cima para baixo
                     .ThenBy(t => t.XMin); // Da esquerda para direita
-    }
-
-    public static IEnumerable<TextCell> TextEquals(this IEnumerable<TextCell> cells, string text)
-    {
-        return cells.Where(x => x.Text == text);
     }
 }

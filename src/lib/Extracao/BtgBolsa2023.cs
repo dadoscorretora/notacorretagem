@@ -4,7 +4,7 @@ using DadosCorretora.NotaCorretagem.Parser;
 
 namespace DadosCorretora.NotaCorretagem.Extracao;
 
-public class BtgBolsa2023
+public partial class BtgBolsa2023
 {
     public static IEnumerable<Dados> Extrai(IEnumerable<TextCell> pagina)
     {
