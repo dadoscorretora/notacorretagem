@@ -24,11 +24,14 @@ public class Dados
         public string NumeroNota = "";
         public string Folha = "";
         public string DataPregao = "";
-
         public string CustoTaxaLiquidacao = "";
         public string CustoTaxaRegistro = "";
         public string CustoTotalBolsa = "";
-        public string CustoTotalCorretora = "";
+        public string CustoTaxaOperacional = "";
+        public string CustoExecucao = "";
+        public string CustoTaxaCustodia = "";
+        public string CustoImposto = "";
         public string IrrfSobreOperacoes = "";
+        public string CustoOutros = "";
     }
 }

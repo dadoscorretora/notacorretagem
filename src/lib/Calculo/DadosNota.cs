@@ -22,7 +22,8 @@ public class DadosNota
         public decimal Quantidade;
         public decimal ValorOperacao;
     }
-    public class Custo {
+    public class Custo
+    {
         public string NumeroNota = "";
         public DateOnly DataPregao;
         public decimal CustoTotal;
