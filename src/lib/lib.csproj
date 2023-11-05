@@ -12,6 +12,7 @@
   <ItemGroup>
     <Folder Include="Calculo/" />
     <Folder Include="Extracao/" />
+    <Folder Include="Parser/" />
   </ItemGroup>
 
 </Project>
