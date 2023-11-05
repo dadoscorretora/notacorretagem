@@ -1,10 +1,13 @@
+using System.Globalization;
+using DadosCorretora.NotaCorretagem.Calculo;
 using DadosCorretora.NotaCorretagem.Parser;
 
 namespace DadosCorretora.NotaCorretagem.Extracao;
 
 public class XPBolsa2023
 {
-    public static IEnumerable<Dados> Extrai(IEnumerable<TextCell> pagina)
+    private static readonly System.Globalization.CultureInfo Br = new System.Globalization.CultureInfo("pt-BR");
+    public static IEnumerable<Dados> ExtraiDeHTML_BBox(IEnumerable<TextCell> pagina)
     {
         var linhaRotulosNota = pagina.LineOfText("Nr. nota Folha Data pregão");
 
@@ -80,10 +83,14 @@ public class XPBolsa2023
             var custoLiquidacao = blocoCustos.LineOfText("Taxa de liquidação").Skip(3).InnerText();
             var custoRegistro = blocoCustos.LineOfText("Taxa de Registro").Skip(3).InnerText();
             var totalBovespa = blocoCustos.LineOfText("Total Bovespa / Soma").Skip(4).InnerText();
-            var totalCustos = blocoCustos.LineOfText("Total Custos / Despesas").Skip(4).InnerText();
+            var taxaOperacional = blocoCustos.LineOfText("Taxa Operacional").Skip(2).InnerText();
+            var custoExecucao = blocoCustos.LineOfText("Execução").Skip(1).InnerText();
+            var custoCustodia = blocoCustos.LineOfText("Taxa de Custódia").Skip(3).InnerText();
+            var custoImposto = blocoCustos.LineOfText("Impostos").Skip(1).InnerText();
             var irrf = blocoCustos.LineOfText("I.R.R.F. s/ operações, base").Skip(5).InnerText(); //skip(4+1) por conta do valor liquido
+            var custoOutros = blocoCustos.LineOfText("Outros").Skip(1).InnerText();
 
-            if (custoLiquidacao.Length + custoRegistro.Length + totalBovespa.Length + totalCustos.Length + irrf.Length > 0)
+            if (totalBovespa != "CONTINUA..." && (custoLiquidacao.Length + custoRegistro.Length + totalBovespa.Length + irrf.Length > 0))
             {
                 var custo = new Dados.DadosCusto
                 {
@@ -93,12 +100,88 @@ public class XPBolsa2023
                     CustoTaxaLiquidacao = custoLiquidacao,
                     CustoTaxaRegistro = custoRegistro,
                     CustoTotalBolsa = totalBovespa,
-                    CustoTotalCorretora = totalCustos,
-                    IrrfSobreOperacoes = irrf
+                    CustoTaxaOperacional = taxaOperacional,
+                    CustoExecucao = custoExecucao,
+                    CustoTaxaCustodia = custoCustodia,
+                    CustoImposto = custoImposto,
+                    IrrfSobreOperacoes = irrf,
+                    CustoOutros = custoOutros
                 };
 
                 yield return new Dados { Custo = custo };
             }
         }
+    }
+
+    private static decimal ConverteDec(string texto)
+    {
+        if (texto == null || texto.Length == 0)
+            return 0;
+        return decimal.Parse(texto, Br);
+    }
+    
+    private static decimal ConverteDecSnl(string texto)
+    {
+        if (texto.EndsWith(" C"))
+        {
+            texto = texto.Substring(0, texto.Length - 2).Trim();
+            return ConverteDec(texto);
+        }
+        if (texto.EndsWith(" D"))
+        {
+            texto = texto.Substring(0, texto.Length - 2).Trim();
+            return ConverteDec(texto) * -1;
+        }
+        return 0;
+    }
+
+    public static DadosNota TraduzDadosTipados(IEnumerable<Dados> dados)
+    {
+        var dadosNota = new DadosNota();
+
+        dados.ToList().ForEach(dado =>
+        {
+            var t = dado.Transacao;
+            if (t != null)
+            {
+                var transacao = new DadosNota.Operacao();
+                transacao.NumeroNota = dado.Transacao!.NumeroNota;
+                transacao.DataNota = DateOnly.ParseExact(dado.Transacao.DataPregao, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                transacao.CodigoAtivo = dado.Transacao.Titulo;
+                transacao.Quantidade = ConverteDec(dado.Transacao.Quantidade);
+                transacao.ValorOperacao = ConverteDecSnl($"{dado.Transacao.Valor} {dado.Transacao.Sinal}");
+                dadosNota.AcumulaOperacao(transacao);
+            }
+            var c = dado.Custo;
+            if (c != null)
+            {
+                var custo = new DadosNota.Custo();
+                custo.NumeroNota = dado.Custo!.NumeroNota;
+                custo.DataPregao = DateOnly.ParseExact(dado.Custo.DataPregao, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                //custo total
+                var custoTaxaLiquidacao = ConverteDecSnl(dado.Custo.CustoTaxaLiquidacao);
+                var custoTaxaRegistro = ConverteDecSnl(dado.Custo.CustoTaxaRegistro);
+                var custoTotalBolsa = ConverteDecSnl(dado.Custo.CustoTotalBolsa);
+                var custoTaxaOperacional = ConverteDecSnl(dado.Custo.CustoTaxaOperacional);
+                var custoExecucao = ConverteDecSnl(dado.Custo.CustoExecucao);
+                var custoTaxaCustodia = ConverteDecSnl(dado.Custo.CustoTaxaCustodia);
+                var custoImposto = ConverteDecSnl(dado.Custo.CustoImposto);
+                var custoOutros = ConverteDecSnl(dado.Custo.CustoOutros);
+                custo.CustoTotal = 
+                    custoTaxaLiquidacao + 
+                    custoTaxaRegistro + 
+                    custoTotalBolsa + 
+                    custoTaxaOperacional + 
+                    custoExecucao + 
+                    custoTaxaCustodia + 
+                    custoImposto + 
+                    custoOutros;
+                //irrf
+                custo.IrrfSobreOperacoes = ConverteDecSnl(dado.Custo.IrrfSobreOperacoes);//se não tiver d ou c o valor é zero
+                dadosNota.AcumulaCusto(custo);
+            }
+        });
+
+        return dadosNota;
     }
 }

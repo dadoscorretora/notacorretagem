@@ -21,6 +21,7 @@ public class DadosNota
         public string CodigoAtivo = "";
         public decimal Quantidade;
         public decimal ValorOperacao;
+        public decimal CustoOperacao = 0;
     }
     public class Custo
     {
