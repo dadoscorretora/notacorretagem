@@ -233,7 +233,9 @@ namespace DadosCorretora.NotaCorretagem.Cmd
                 VERSION_MSG + NL +
                 "Uso: notatocsv [OPCAO]..." + NL +
                 "Converte nota de corretagem em formato PDF ou HTML para CSV na saida (stdout)." + NL +
-                NL +
+                NL + 
+                "Atenção: Este programa depende do pdftotext estar instalado." + NL +
+                NL + 
                 "Opções:" + NL;
             foreach (var arg in argNameList)
             {
@@ -242,11 +244,11 @@ namespace DadosCorretora.NotaCorretagem.Cmd
                 txtHelp += $"{option}: {argHelpDict[arg]}" + NL;
             }
             txtHelp += NL +
-                "Exemplos:" + NL +
-                "\tnotatocsv --model XP2023 --file nota.html" + NL +
-                "\tnotatocsv -m BTG2023 --file nota.pdf > nota.csv" + NL +
-                "\tnotatocsv -m XP2023 -f nota.pdf -s \"|\"" + NL +
-                "\tnotatocsv --pre-process nota.pdf" + NL +
+                "Exemplos de uso:" + NL +
+                "notatocsv --model XP2023 --file nota.html" + NL +
+                "notatocsv -m BTG2023 --file nota.pdf > nota.csv" + NL +
+                "notatocsv -m XP2023 -f nota.pdf -s \"|\"" + NL +
+                "notatocsv --pre-process nota.pdf" + NL +
                 NL;
             txtHelp += NL +
                 "BSD Zero Clause License" + NL +
