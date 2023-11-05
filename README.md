@@ -1,6 +1,11 @@
 # notatocsv
 Extrai dados de corretagem de várias corretoras.
 
+Use a ajuda (help) para ver como usar o ```notatocsv```:
+```bash
+notatocsv --help
+```
+
 ## Construir
 O projeto gera um executável autocontido (que não depende de dll): ```notatocsv```
 
@@ -19,7 +24,7 @@ Esse projeto usa o utilitário ```pdftotext``` para minerar as notas de corretag
 
 Usando a opção *bbox* o ```pdftotext``` gera um html com caixas com a posição e tamanho de cada palavra e página do PDF.
 
-Então as palavras-chave são usadas como referência para descobrir a posição das informações na nota.
+Então, a posição de palavras-chave são usadas como referência para descobrir informações da nota.
 
 O comando ```pdftotext``` é usado da seguinte forma:
 ```bash

@@ -242,6 +242,13 @@ namespace DadosCorretora.NotaCorretagem.Cmd
                 txtHelp += $"{option}: {argHelpDict[arg]}" + NL;
             }
             txtHelp += NL +
+                "Exemplos:" + NL +
+                "\tnotatocsv --model XP2023 --file nota.html" + NL +
+                "\tnotatocsv -m BTG2023 --file nota.pdf > nota.csv" + NL +
+                "\tnotatocsv -m XP2023 -f nota.pdf -s \"|\"" + NL +
+                "\tnotatocsv --pre-process nota.pdf" + NL +
+                NL;
+            txtHelp += NL +
                 "BSD Zero Clause License" + NL +
                 "Copyright (C) 2023" + NL +
                 NL +
