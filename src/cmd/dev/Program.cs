@@ -79,7 +79,7 @@ namespace DadosCorretora.NotaCorretagem.Cmd
             var argList = args.ToList();
             if (argList.Count == 0)
             {
-                throw new ArgumentException("Faltam informar opções nos argumentos!");
+                throw new ArgumentException("Falta informar opções nos argumentos!");
             }
 
             var argReadCount = 0;
