@@ -6,7 +6,7 @@ dotnet clean --configuration "$config" ./src 1>&2
 dotnet build --configuration "$config" ./src 1>&2
 dotnet publish --configuration "$config" ./src 1>&2
 
-exec_file=$(find ./src -path */src/*/bin/Release/*/linux-x64/publish/notatocsv)
+exec_file=$(find ./src -path */src/*/bin/$config/*/linux-x64/publish/notatocsv)
 find_exit=$?
 
 if [ $find_exit -ne 0 ]; then

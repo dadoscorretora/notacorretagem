@@ -10,14 +10,15 @@ public class Dados
         public string NumeroNota = "";
         public string Folha = "";
         public string DataPregao = "";
-
         public string Operacao = "";
         public string Titulo = "";
+        public string CodigoAtivo = "";
         public string Observacao = "";
         public string Quantidade = "";
         public string Preco = "";
         public string Valor = "";
         public string Sinal = "";
+
     }
     public class DadosCusto
     {

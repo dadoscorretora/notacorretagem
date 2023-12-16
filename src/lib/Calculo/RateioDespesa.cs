@@ -7,7 +7,7 @@ public class RateioDespesa
         var nrNotas = dadosNota.Custos.GroupBy(c => c.NumeroNota);
         if (nrNotas.Any( g => g.Count() > 1))
         {
-            throw new Exception("Mais de um custo para a mesma nota. Provável erro na extração.");
+            throw new Exception("Mais de um custo para a mesma nota. Provável erro na extração");
         }
         dadosNota.Custos.ToList().ForEach(custo =>
         {
@@ -19,7 +19,7 @@ public class RateioDespesa
 
             if (restoCusto > 0)
             {
-                throw new Exception("Arrendondamento do rateio maior que o custo.");
+                throw new Exception("Arrendondamento do rateio maior que o custo");
             }
 
             custoTotal = restoCusto;

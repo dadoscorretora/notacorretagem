@@ -57,6 +57,8 @@ public partial class BtgBolsa2023
             var infoSinal = headSinal.Intersect(linha).Single().Text;
 
             transacao.Operacao = infoOpera;
+            //FIXME Não parece ter tratamento de titulo para ticker
+            transacao.Ticker = infoEspec;
             transacao.Titulo = infoEspec;
             transacao.Observacao = infoObser;
             transacao.Quantidade = infoQuant;
@@ -168,7 +170,7 @@ public partial class BtgBolsa2023
                         default: throw new FormatException(nameof(input.Operacao) + ": " + input.Operacao);
                     }
 
-                    //calculo.IncluiOperacao(input.NumeroNota, data, trans.Titulo, quant, finan, daytd);
+                    calculo.IncluiOperacao(input.NumeroNota, data, input.Ticker, input.Titulo, quant, finan, daytd);
                     continue;
                 }
             }
@@ -257,9 +259,9 @@ public partial class BtgBolsa2023
 
     private static readonly System.Globalization.CultureInfo Br = new System.Globalization.CultureInfo("pt-BR");
 
-    private static DateTime ConvertDat(string texto)
+    private static DateOnly ConvertDat(string texto)
     {
-        return DateTime.ParseExact(texto, "dd/MM/yyyy", Br);
+        return DateOnly.ParseExact(texto, "dd/MM/yyyy", Br);
     }
 
     private static decimal ConverteDec(string texto)
@@ -295,8 +297,8 @@ public partial class BtgBolsa2023
             public string NumeroNota = "";
             public string Folha = "";
             public string DataPregao = "";
-
             public string Operacao = "";
+            internal string Ticker =  "";
             public string Titulo = "";
             public string Observacao = "";
             public string Quantidade = "";
@@ -309,7 +311,6 @@ public partial class BtgBolsa2023
             public string NumeroNota = "";
             public string Folha = "";
             public string DataPregao = "";
-
             public string CustoTaxaLiquidacao = "";
             public string CustoTaxaRegistro = "";
             public string CustoTotalBolsa = "";

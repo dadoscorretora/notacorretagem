@@ -6,7 +6,15 @@ namespace DadosCorretora.NotaCorretagem.Extracao;
 
 public class XPBolsa2023
 {
-    private static readonly System.Globalization.CultureInfo Br = new System.Globalization.CultureInfo("pt-BR");
+    private const string COL_Q = "Q";
+    private const string COL_CV = "C/V";
+    private const string COL_ESPECIFICACAO_TITULO = "Especificação do título";
+    private const string COL_OBS = "Obs. (*)";
+    private const string COL_QUANTIDADE = "Quantidade";
+    private const string COL_PRECO_AJUSTE = "Preço / Ajuste";
+    private const string COL_VALOR_OPERACAO_AJUSTE = "Valor Operação / Ajuste";
+    private const string COL_DC = "D/C";
+    private static readonly CultureInfo Br = new CultureInfo("pt-BR");
     public static IEnumerable<Dados> ExtraiDeHTML_BBox(IEnumerable<TextCell> pagina)
     {
         var linhaRotulosNota = pagina.LineOfText("Nr. nota Folha Data pregão");
@@ -24,15 +32,6 @@ public class XPBolsa2023
         if (nrNota.Length == 0 | nrFolha.Length == 0 || dataPregao.Length == 0)
             yield break;
 
-        var COL_Q = "Q";
-        var COL_CV = "C/V";
-        var COL_ESPECIFICACAO_TITULO = "Especificação do título";
-        var COL_OBS = "Obs. (*)";
-        var COL_QUANTIDADE = "Quantidade";
-        var COL_PRECO_AJUSTE = "Preço / Ajuste";
-        var COL_VALOR_OPERACAO_AJUSTE = "Valor Operação / Ajuste";
-        var COL_DC = "D/C";
-
         var linha = pagina.LineOfText(COL_Q);
 
         var headOperacao = linha.HeaderOf(COL_CV);
@@ -45,32 +44,74 @@ public class XPBolsa2023
 
         while (true)
         {
-            var transacao = new Dados.DadosTransacao
-            {
-                NumeroNota = nrNota,
-                Folha = nrFolha,
-                DataPregao = dataPregao
-            };
-
             linha = pagina.LineBelow(linha);
             if (linha.LineOfText("Resumo dos Negócios").Any() || linha.LineOfText("Resumo Financeiro").Any())
                 break;
 
             var operacao = headOperacao.Intersect(linha).Single().Text;
-            var especificacao = headEspecificacao.Intersect(linha).InnerText();
+            var especGroupCell = headEspecificacao.Intersect(linha);
+            
+            bool findTicker(IEnumerable<TextCell> group, TextCell cell, int pos) {
+                    return cell.Text.Length > 4 &&
+                    group.ElementAtOrDefault(pos-1) != null &&
+                    group.ElementAtOrDefault(pos+1) != null && 
+                    Math.Abs(cell.XMin - group.ElementAt(pos-1).XMax) > 8 &&
+                    Math.Abs(cell.XMin - group.ElementAt(pos+1).XMax) > 8;
+            }
+
+            string TryGuessTicker(IEnumerable<TextCell> celulasTitulo) {
+                var titulo = celulasTitulo.InnerText();
+                if (titulo.Contains("EZTEC")) {
+                    return "EZTEC3";
+                } 
+                else if (titulo.Contains("HELBOR"))
+                {
+                    return "HBOR3";
+                }
+                else if (titulo.Contains("TECNISA"))
+                {
+                    return "TCSA3";
+                }
+                else if (titulo.Contains("MELIUZ"))
+                {
+                    return "CASH3";
+                }
+                Console.Error.WriteLine($"AVISO: Não foi possível encontrar o ticker do pregão de título '{titulo}'.");
+                return "";
+            }
+
+            string TickerOuTitulo(IEnumerable<TextCell> celulasTitulo) {
+                IEnumerable<TextCell> found = celulasTitulo.Where( (cell, position) => 
+                    findTicker(celulasTitulo, cell, position));
+                if (found.Count() == 1) {
+                    return found.Single().Text;
+                } else {
+                    return TryGuessTicker(celulasTitulo);
+                }
+            }
+
+            var titulo = especGroupCell.InnerText();
+            var codigoAtivo = TickerOuTitulo(especGroupCell);
             var observacao = headObservacao.Intersect(linha).SingleOrDefault()?.Text ?? "";
             var quantidade = headQuantidade.Intersect(linha).Single().Text;
             var preco = headPreco.Intersect(linha).Single().Text;
             var valor = headValor.Intersect(linha).Single().Text;
             var sinal = headSinal.Intersect(linha).Single().Text;
 
-            transacao.Operacao = operacao;
-            transacao.Titulo = especificacao;
-            transacao.Observacao = observacao;
-            transacao.Quantidade = quantidade;
-            transacao.Preco = preco;
-            transacao.Valor = valor;
-            transacao.Sinal = sinal;
+            var transacao = new Dados.DadosTransacao
+            {
+                NumeroNota = nrNota,
+                Folha = nrFolha,
+                DataPregao = dataPregao,
+                Operacao = operacao,
+                Titulo = titulo,
+                CodigoAtivo = codigoAtivo,
+                Observacao = observacao,
+                Quantidade = quantidade,
+                Preco = preco,
+                Valor = valor,
+                Sinal = sinal
+            };
 
             yield return new Dados { Transacao = transacao };
         }
@@ -119,7 +160,7 @@ public class XPBolsa2023
             return 0;
         return decimal.Parse(texto, Br);
     }
-    
+
     private static decimal ConverteDecSnl(string texto)
     {
         if (texto.EndsWith(" C"))
@@ -135,49 +176,81 @@ public class XPBolsa2023
         return 0;
     }
 
+    private static decimal ConverteDecSnl(string texto, string sinal)
+    {
+        if (sinal.Trim() == "C")
+        {
+            return ConverteDec(texto);
+        }
+        if (sinal.Trim() == "D")
+        {
+            return ConverteDec(texto) * -1;
+        }
+        return 0;
+    }
+
+    public static DateOnly ConverteData(string data)
+    {
+        return DateOnly.ParseExact(data, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+    }
+
     public static DadosNota TraduzDadosTipados(IEnumerable<Dados> dados)
     {
         var dadosNota = new DadosNota();
 
         dados.ToList().ForEach(dado =>
         {
-            var t = dado.Transacao;
-            if (t != null)
+            var rTrn = dado.Transacao;
+            if (rTrn != null)
             {
-                var transacao = new DadosNota.Operacao();
-                transacao.NumeroNota = dado.Transacao!.NumeroNota;
-                transacao.DataNota = DateOnly.ParseExact(dado.Transacao.DataPregao, "dd/MM/yyyy", CultureInfo.InvariantCulture);
-                transacao.CodigoAtivo = dado.Transacao.Titulo;
-                transacao.Quantidade = ConverteDec(dado.Transacao.Quantidade);
-                transacao.ValorOperacao = ConverteDecSnl($"{dado.Transacao.Valor} {dado.Transacao.Sinal}");
+                var quantidade = ConverteDec(rTrn.Quantidade);
+                quantidade = rTrn.Operacao == "V" ? quantidade * -1 : quantidade;
+                var transacao = new DadosNota.Operacao
+                {
+                    NumeroNota = rTrn.NumeroNota,
+                    Titulo = rTrn.Titulo,
+                    CodigoAtivo = rTrn.CodigoAtivo,
+                    Quantidade = quantidade,
+                    ValorOperacao = ConverteDecSnl(rTrn.Valor, rTrn.Sinal),
+                    DataNota = ConverteData(rTrn.DataPregao)
+                };
                 dadosNota.AcumulaOperacao(transacao);
             }
-            var c = dado.Custo;
-            if (c != null)
+
+            var rCusto = dado.Custo;
+            if (rCusto != null)
             {
-                var custo = new DadosNota.Custo();
-                custo.NumeroNota = dado.Custo!.NumeroNota;
-                custo.DataPregao = DateOnly.ParseExact(dado.Custo.DataPregao, "dd/MM/yyyy", CultureInfo.InvariantCulture);
                 //custo total
-                var custoTaxaLiquidacao = ConverteDecSnl(dado.Custo.CustoTaxaLiquidacao);
-                var custoTaxaRegistro = ConverteDecSnl(dado.Custo.CustoTaxaRegistro);
-                var custoTotalBolsa = ConverteDecSnl(dado.Custo.CustoTotalBolsa);
-                var custoTaxaOperacional = ConverteDecSnl(dado.Custo.CustoTaxaOperacional);
-                var custoExecucao = ConverteDecSnl(dado.Custo.CustoExecucao);
-                var custoTaxaCustodia = ConverteDecSnl(dado.Custo.CustoTaxaCustodia);
-                var custoImposto = ConverteDecSnl(dado.Custo.CustoImposto);
-                var custoOutros = ConverteDecSnl(dado.Custo.CustoOutros);
-                custo.CustoTotal = 
-                    custoTaxaLiquidacao + 
-                    custoTaxaRegistro + 
-                    custoTotalBolsa + 
-                    custoTaxaOperacional + 
-                    custoExecucao + 
-                    custoTaxaCustodia + 
-                    custoImposto + 
+                var custoTaxaLiquidacao = ConverteDecSnl(rCusto.CustoTaxaLiquidacao);
+                var custoTaxaRegistro = ConverteDecSnl(rCusto.CustoTaxaRegistro);
+                var custoTotalBolsa = ConverteDecSnl(rCusto.CustoTotalBolsa);
+                var custoTaxaOperacional = ConverteDecSnl(rCusto.CustoTaxaOperacional);
+                var custoExecucao = ConverteDecSnl(rCusto.CustoExecucao);
+                var custoTaxaCustodia = ConverteDecSnl(rCusto.CustoTaxaCustodia);
+                var custoImposto = ConverteDecSnl(rCusto.CustoImposto);
+                var custoOutros = ConverteDecSnl(rCusto.CustoOutros);
+                var custoTotal =
+                    custoTaxaLiquidacao +
+                    custoTaxaRegistro +
+                    custoTotalBolsa +
+                    custoTaxaOperacional +
+                    custoExecucao +
+                    custoTaxaCustodia +
+                    custoImposto +
                     custoOutros;
+
                 //irrf
-                custo.IrrfSobreOperacoes = ConverteDecSnl(dado.Custo.IrrfSobreOperacoes);//se não tiver d ou c o valor é zero
+                //se não tiver d ou c o valor é zero
+                var custoIrrfSobreOperacoes = ConverteDecSnl(rCusto.IrrfSobreOperacoes);
+
+                var custo = new DadosNota.Custo
+                {
+                    NumeroNota = rCusto.NumeroNota,
+                    DataPregao = ConverteData(rCusto.DataPregao),
+                    CustoTotal = custoTotal,
+                    IrrfSobreOperacoes = custoIrrfSobreOperacoes
+                };
+
                 dadosNota.AcumulaCusto(custo);
             }
         });

@@ -1,26 +1,69 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            // Use IntelliSense to find out which attributes exist for C# debugging
-            // Use hover for the description of the existing attributes
-            // For further information visit https://github.com/dotnet/vscode-csharp/blob/main/debugger-launchjson.md
-            "name": ".NET Core Launch (console)",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build",
-            // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/cmd/dev/bin/Debug/net7.0/dev.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/src/cmd/dev",
-            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
-            "console": "internalConsole",
-            "stopAtEntry": false
-        },
-        {
-            "name": ".NET Core Attach",
-            "type": "coreclr",
-            "request": "attach"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+
+    {
+      "name": "csvtoxlsx - column as sheet",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/csvtoxlsx.py",
+      "args": ["--column-as-sheet","0","-x","/home/agaro/Documents/pessoal/investimentos/xp/notas/nota2.xlsx","/home/agaro/Documents/pessoal/investimentos/xp/notas/notas.csv"],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+        "name": "notacsvtoxlsx - passando nome da planilha",
+        "type": "python",
+        "request": "launch",
+        "program": "${workspaceFolder}/csvtoxlsx.py",
+        "args": ["~/Documents/pessoal/investimentos/xp/notas/XPINC_NOTA_NEGOCIACAO_B3_2_2019.csv", "nota_teste"],
+        "console": "integratedTerminal",
+        "justMyCode": true
+      },
+      {
+      "name": "--help",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/cmd/dev/bin/Debug/net7.0/linux-x64/notatocsv.dll",
+      "args": ["--filter-ticker"],
+      "cwd": "${workspaceFolder}/src/cmd/dev",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    },
+    {
+      "name": "--model XP2023 --file some.pdf",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/cmd/dev/bin/Debug/net7.0/linux-x64/notatocsv.dll",
+      "args": [
+        "--model",
+        "XP2023",
+        "--file",
+        "/home/agaro/Documents/pessoal/investimentos/xp/notas/XPINC_NOTA_NEGOCIACAO_B3_4_2020.pdf"
+      ],
+      "cwd": "${workspaceFolder}/src/cmd/dev",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    },
+    {
+      "name": "--model XP2023 --file-list <listoffiles>",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/cmd/dev/bin/Debug/net7.0/linux-x64/notatocsv.dll",
+      "args": [
+        "--model",
+        "XP2023",
+        "--file-list",
+        "/home/agaro/Documents/pessoal/investimentos/xp/notas/XPINC_NOTA_NEGOCIACAO_B3_4_2020.pdf",
+        "/home/agaro/Documents/pessoal/investimentos/xp/notas/XPINC_NOTA_NEGOCIACAO_B3_2_2019.pdf",
+        "/home/agaro/Documents/pessoal/investimentos/xp/notas/XPINC_NOTA_NEGOCIACAO_B3_2_2022.pdf"
+      ],
+      "cwd": "${workspaceFolder}/src/cmd/dev",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    }
+  ]
 }

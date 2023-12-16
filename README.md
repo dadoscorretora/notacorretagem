@@ -37,16 +37,16 @@ src/cmd/dev/bin/Release/net7.0/linux-x64/publish/
 O notatocsv depende do utilitário ```pdftotext``` instalado para extrair as informações das notas de corretagem em pdf.
 
 ### Como são extraídos os dados das notas em pdf?
-Usando o utilitário ```pdftotext``` com a opção ``bbox``, o é gerado um html com caixas com a posição e tamanho de cada palavra e página do pdf da nota de corretagem.
+Usando o utilitário ```pdftotext``` com a opção ``bbox``, é gerado um html com caixas com a posição e tamanho de cada palavra e página do pdf da nota de corretagem.
 
-Então, a posição de palavras-chave são usadas como referência para descobrir a posição relativa das informações específicas da nota.
+Então, a posição de palavras-chave são usadas como referência para descobrir a posição relativa das informações da nota.
 
-Para gerar o html com as caixas de posição de cada palavra e página, o comando ```pdftotext``` é usado da seguinte forma:
+Para gerar o html com as caixas de posição o comando ```pdftotext``` é usado da seguinte forma:
 ```bash
 pdftotext -bbox /caminho/notadecorretagem.pdf
 ```
 
-Exemplo de trecho de caixas de posição de nota de corretagem no formato html ```bbox```:
+Exemplo de trecho de caixas de posição de nota de corretagem no formato html bbox:
 ```html
 <doc>
   <page width="595.000000" height="842.000000">
@@ -64,8 +64,8 @@ Exemplo de trecho de caixas de posição de nota de corretagem no formato html `
 ### Qual a estrutura do projeto?
 - ```./```: Raiz do projeto.
     - ```src```: Raiz do projeto C# com o arquivo ```*.sln```.
-        - ```lib```: Código da mineração do html 'bbox' para cada modelo de nota suportado.
+        - ```lib```: Código da mineração do html bbox para cada modelo de nota suportado.
             - ```Extração```: Código de mineração dos modelos de nota suportados.
             - ```Calculo```: Código com os dados tipados e de rateio de despesas por operação.
-            ```Parser```: Código base para recuperação dos elementos nos arquivos html 'bbox'.
+            ```Parser```: Código base para recuperação dos elementos nos arquivos html bbox.
         - ```cmd/dev``` - Código do executável ```notatocsv```.
