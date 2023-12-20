@@ -45,15 +45,15 @@ public class DadosNota
     }
 
     internal void IncluiOperacao(
-        string numeroNota, DateOnly data, 
-        string ticker, string titulo, 
-        decimal quant, decimal finan, 
+        string numeroNota, DateOnly data,
+        string ticker, string titulo,
+        decimal quant, decimal finan,
         bool daytd)
     {
         var result = this.Operacoes.Where(o =>
-                o.NumeroNota == numeroNota && 
-                o.DataNota == data && 
-                (o.Ticker == ticker || 
+                o.NumeroNota == numeroNota &&
+                o.DataNota == data &&
+                (o.Ticker == ticker ||
                 o.Titulo == titulo)
             );
         if (result.Count() == 0) {
@@ -66,7 +66,7 @@ public class DadosNota
                 Quantidade = quant,
                 ValorOperacao = finan,
                 CustoOperacao = 0,
-                
+
             };
             this.Operacoes.Add(operacao);
         } else if (result.Count() == 1) {

@@ -83,14 +83,10 @@ namespace DadosCorretora.NotaCorretagem.Cmd
 
                 System.Environment.Exit(0);
             }
-            catch (ArgumentException ex)
-            {
-                Console.Error.WriteLine($"ERRO: {ex.Message}");
-                ShowHelpText(optNameList, optAltDict, optHelpDict);
-                System.Environment.Exit(1);
-            }
             catch (Exception ex)
             {
+                if (System.Diagnostics.Debugger.IsAttached)
+                    Console.Error.WriteLine(ex.ToString());
                 Console.Error.WriteLine($"ERRO: {ex.Message}");
                 ShowHelpText(optNameList, optAltDict, optHelpDict);
                 System.Environment.Exit(1);
@@ -229,7 +225,7 @@ namespace DadosCorretora.NotaCorretagem.Cmd
             }
             else if (model == "BTG2023")
             {
-                ExtractBTG2023(filePath);
+                dadosNota = ExtractBTG2023(filePath);
             }
             else
             {
@@ -274,14 +270,14 @@ namespace DadosCorretora.NotaCorretagem.Cmd
             }
 
             var operacoes = dadosNota.Operacoes;
-            if (argValueDict.ContainsKey(FILTER_TICKER_OPT)) 
+            if (argValueDict.ContainsKey(FILTER_TICKER_OPT))
             {
                 bool Match(DadosNota.Operacao o, string filter)
                 {
                     if (!string.IsNullOrEmpty(o.CodigoAtivo))
                     {
                         return o.CodigoAtivo == filter;
-                    } 
+                    }
                     else if (!string.IsNullOrEmpty(o.Titulo))
                     {
                         return o.Titulo == filter;
@@ -314,10 +310,10 @@ namespace DadosCorretora.NotaCorretagem.Cmd
                 if (verbose > 0)
                 {
                     row += $"{o.Titulo}{separator}";
-                }                
+                }
                 row += $"{o.CodigoAtivo}{separator}{dataNota}{separator}{o.NumeroNota}{separator}";
                 row += $"{o.Quantidade}{separator}{preco}{separator}{custoOperacao}";
-                if (verbose > 0) 
+                if (verbose > 0)
                 {
                     row += $"{separator}{valorOperacao}";
                 }
@@ -400,7 +396,7 @@ namespace DadosCorretora.NotaCorretagem.Cmd
         {
             var copy = new List<string>(argList);
             string? modelValue;
-            try 
+            try
             {
                 modelValue = copy.Skip(argReadCount).First();
             } catch (Exception) {
@@ -419,7 +415,7 @@ namespace DadosCorretora.NotaCorretagem.Cmd
         {
             var copy = new List<string>(argList);
             string? modelValue;
-            try 
+            try
             {
                 modelValue = copy.Skip(argReadCount).First();
             } catch (Exception) {
@@ -506,27 +502,18 @@ namespace DadosCorretora.NotaCorretagem.Cmd
             return dadosNota;
         }
 
-        public static void ExtractBTG2023(string nomeArquivo)
+        public static DadosNota ExtractBTG2023(string nomeArquivo)
         {
+            var ret = new DadosNota();
+
             var doc = new System.Xml.XmlDocument();
             doc.Load(nomeArquivo);
             var paginas = PdfToHtmlReader.Read(doc);
+
             foreach (var pagina in paginas)
-            {
-                var dados = BtgBolsa2023.Extrai(pagina).ToList();
-                foreach (var dado in dados)
-                {
-                    var t = dado.Transacao;
-                    if (t != null)
-                        System.Console.WriteLine($"t,{t.DataPregao};{t.NumeroNota};{t.Folha};{t.Operacao};" +
-                            $"{t.Titulo};{t.Quantidade};{t.Preco};{t.Valor}");
-                    var c = dado.Custo;
-                    if (c != null)
-                        System.Console.WriteLine($"c;{c.DataPregao};{c.NumeroNota};{c.Folha};" +
-                            $"{c.CustoTaxaLiquidacao};{c.CustoTaxaRegistro};{c.CustoTotalBolsa};" +
-                            $"{c.CustoTotalCorretora};{c.IrrfSobreOperacoes}");
-                }
-            }
+                BtgBolsa2023.Extrai(pagina, ret);
+
+            return ret;
         }
     }
 }

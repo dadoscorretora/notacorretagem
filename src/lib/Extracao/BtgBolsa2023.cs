@@ -1,5 +1,5 @@
-using System.Net.Quic;
 using System.Text;
+using DadosCorretora.NotaCorretagem.Calculo;
 using DadosCorretora.NotaCorretagem.Parser;
 
 namespace DadosCorretora.NotaCorretagem.Extracao;
@@ -49,7 +49,7 @@ public partial class BtgBolsa2023
                 break;
 
             var infoOpera = headOpera.Intersect(linha).Single().Text;
-            var infoEspec = headEspec.Intersect(linha).InnerText();
+            var infoEspec = headEspec.Intersect(linha).First().Text;
             var infoObser = headObser.Intersect(linha).SingleOrDefault()?.Text ?? "";
             var infoQuant = headQuant.Intersect(linha).Single().Text;
             var infoPreco = headPreco.Intersect(linha).Single().Text;
@@ -57,8 +57,6 @@ public partial class BtgBolsa2023
             var infoSinal = headSinal.Intersect(linha).Single().Text;
 
             transacao.Operacao = infoOpera;
-            //FIXME Não parece ter tratamento de titulo para ticker
-            transacao.Ticker = infoEspec;
             transacao.Titulo = infoEspec;
             transacao.Observacao = infoObser;
             transacao.Quantidade = infoQuant;
@@ -170,8 +168,7 @@ public partial class BtgBolsa2023
                         default: throw new FormatException(nameof(input.Operacao) + ": " + input.Operacao);
                     }
 
-                    calculo.IncluiOperacao(input.NumeroNota, data, input.Ticker, input.Titulo, quant, finan, daytd);
-                    continue;
+                    calculo.IncluiOperacao(input.NumeroNota, data, input.Titulo, input.Titulo, quant, finan, daytd);
                 }
             }
 
@@ -182,16 +179,24 @@ public partial class BtgBolsa2023
                 {
                     var data = ConvertDat(input.DataPregao);
 
-                    var custo = Decimal.Zero;
-                    custo += ConverteDecSnl(input.CustoTaxaLiquidacao);
-                    custo += ConverteDecSnl(input.CustoTaxaRegistro);
-                    custo += ConverteDecSnl(input.CustoTotalBolsa);
-                    custo += ConverteDecSnl(input.CustoTotalCorretora);
+                    var total = Decimal.Zero;
+                    total += ConverteDecSnl(input.CustoTaxaLiquidacao);
+                    total += ConverteDecSnl(input.CustoTaxaRegistro);
+                    total += ConverteDecSnl(input.CustoTotalBolsa);
+                    total += ConverteDecSnl(input.CustoTotalCorretora);
                     var irrf = ConverteDecSnl(input.IrrfSobreOperacoes);
 
-                    //if (custo != 0 || irrf != 0)
-                    //  calculo.IncluiCusto(input.NumeroNota, data, custo, irrf , false );
-                    continue;
+                    if (total != 0 || irrf != 0)
+                    {
+                        var custo = new DadosNota.Custo
+                        {
+                            DataPregao = data,
+                            NumeroNota = input.NumeroNota,
+                            CustoTotal = total,
+                            IrrfSobreOperacoes = irrf
+                        };
+                        calculo.AcumulaCusto(custo);
+                    }
                 }
             }
 
@@ -298,7 +303,6 @@ public partial class BtgBolsa2023
             public string Folha = "";
             public string DataPregao = "";
             public string Operacao = "";
-            internal string Ticker =  "";
             public string Titulo = "";
             public string Observacao = "";
             public string Quantidade = "";
